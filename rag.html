@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>High-Level RAG Simulator</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI,Tahoma,sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    color:white;
+    padding:30px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    text-align:center;
+    color:#cbd5e1;
+    margin-bottom:30px;
+}
+
+.progress{
+    width:100%;
+    height:10px;
+    background:#334155;
+    border-radius:20px;
+    overflow:hidden;
+    margin-bottom:30px;
+}
+
+.bar{
+    width:0%;
+    height:100%;
+    background:linear-gradient(90deg,#06b6d4,#3b82f6);
+    transition:.5s;
+}
+
+.pipeline{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:18px;
+}
+
+.card{
+    background:rgba(255,255,255,.08);
+    backdrop-filter:blur(15px);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:18px;
+    padding:18px;
+    min-height:160px;
+    transition:.4s;
+    opacity:.35;
+}
+
+.card.active{
+    opacity:1;
+    transform:translateY(-5px);
+    border:2px solid #38bdf8;
+    box-shadow:0 0 20px rgba(56,189,248,.5);
+}
+
+.card h3{
+    margin-bottom:10px;
+}
+
+.card p{
+    color:#dbeafe;
+    line-height:1.5;
+    font-size:14px;
+}
+
+.controls{
+    margin-top:35px;
+    text-align:center;
+}
+
+button{
+    padding:12px 24px;
+    margin:10px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    background:#3b82f6;
+    color:white;
+    font-size:16px;
+}
+
+button:hover{
+    background:#2563eb;
+}
+
+#explanation{
+    margin-top:30px;
+    background:#111827;
+    border-radius:15px;
+    padding:20px;
+    line-height:1.7;
+}
+
+.fake{
+    margin-top:10px;
+    background:#1e293b;
+    padding:10px;
+    border-radius:8px;
+    color:#7dd3fc;
+    font-family:monospace;
+}
+</style>
+
+</head>
+<body>
+
+<h1>📚 Retrieval Augmented Generation (RAG)</h1>
+<div class="subtitle">Interactive High-Level Simulator</div>
+
+<div class="progress">
+    <div class="bar" id="bar"></div>
+</div>
+
+<div class="pipeline">
+
+<div class="card">
+<h3>📄 Step 1</h3>
+<p>Documents</p>
+</div>
+
+<div class="card">
+<h3>✂ Step 2</h3>
+<p>Chunk Documents</p>
+</div>
+
+<div class="card">
+<h3>🧠 Step 3</h3>
+<p>Create Embeddings</p>
+</div>
+
+<div class="card">
+<h3>🗄 Step 4</h3>
+<p>Store in Vector DB</p>
+</div>
+
+<div class="card">
+<h3>❓ Step 5</h3>
+<p>User Query</p>
+</div>
+
+<div class="card">
+<h3>🔍 Step 6</h3>
+<p>Hybrid Search</p>
+</div>
+
+<div class="card">
+<h3>⭐ Step 7</h3>
+<p>Reranking</p>
+</div>
+
+<div class="card">
+<h3>🤖 Step 8</h3>
+<p>LLM Generates Answer</p>
+</div>
+
+</div>
+
+<div class="controls">
+<button onclick="prevStep()">◀ Previous</button>
+<button onclick="nextStep()">Next ▶</button>
+</div>
+
+<div id="explanation">
+Click <b>Next</b> to begin.
+</div>
+
+<script>
+
+const cards=document.querySelectorAll(".card");
+const bar=document.getElementById("bar");
+const exp=document.getElementById("explanation");
+
+let step=-1;
+
+const info=[
+
+`<h2>📄 Step 1 - Documents</h2>
+
+Multiple documents are available.
+
+<div class='fake'>
+Employee Handbook.pdf<br>
+RAG Guide.pdf<br>
+Cloud Notes.docx<br>
+AI Architecture.docx
+</div>
+
+The documents represent your organization's knowledge base.
+`,
+
+`<h2>✂ Step 2 - Chunking</h2>
+
+Large documents are divided into smaller chunks.
+
+<div class='fake'>
+Chunk 1<br>
+Chunk 2<br>
+Chunk 3<br>
+Chunk 4<br>
+Chunk 5
+</div>
+
+Chunking helps retrieve only the relevant portions instead of entire documents.
+`,
+
+`<h2>🧠 Step 3 - Embeddings</h2>
+
+Each chunk is converted into a numerical vector using an embedding model.
+
+<div class='fake'>
+Chunk1 → [0.12,0.81,0.33...]<br>
+Chunk2 → [0.76,0.19,0.41...]<br>
+Chunk3 → [0.55,0.72,0.91...]
+</div>
+
+These vectors capture semantic meaning.
+`,
+
+`<h2>🗄 Step 4 - Vector Database</h2>
+
+The vectors are stored in a Vector Database.
+
+<div class='fake'>
+Vector DB<br>
+📦 Vector #1<br>
+📦 Vector #2<br>
+📦 Vector #3
+</div>
+
+Later, similarity search is performed against these vectors.
+`,
+
+`<h2>❓ Step 5 - User Query</h2>
+
+User enters:
+
+<div class='fake'>
+"What are the benefits of Retrieval Augmented Generation?"
+</div>
+
+The query is converted into an embedding using the SAME embedding model.
+`,
+
+`<h2>🔍 Step 6 - Hybrid Search</h2>
+
+The query embedding searches the Vector DB.
+
+Two searches happen together:
+
+<ul>
+<li>Semantic Search (vector similarity)</li>
+<li>Keyword Search (exact matches)</li>
+</ul>
+
+Top candidate chunks are retrieved.
+`,
+
+`<h2>⭐ Step 7 - Reranking</h2>
+
+Retrieved chunks are reranked.
+
+<div class='fake'>
+Chunk 12 → Score 0.96<br>
+Chunk 5 → Score 0.91<br>
+Chunk 18 → Score 0.87
+</div>
+
+The best Top-K chunks are selected.
+`,
+
+`<h2>🤖 Step 8 - Prompt + LLM</h2>
+
+The retrieved chunks are combined with the user's question.
+
+<div class='fake'>
+Context:<br>
+Chunk12<br>
+Chunk5<br>
+Chunk18
+
+Question:
+What is RAG?
+</div>
+
+The complete prompt is sent to the LLM, which generates an accurate answer grounded in the retrieved context.
+`
+
+];
+
+function show(){
+
+cards.forEach(c=>c.classList.remove("active"));
+
+if(step>=0)
+cards[step].classList.add("active");
+
+bar.style.width=((step+1)/cards.length*100)+"%";
+
+if(step==-1)
+exp.innerHTML="Click <b>Next</b> to begin.";
+
+else
+exp.innerHTML=info[step];
+
+}
+
+function nextStep(){
+
+if(step<cards.length-1){
+step++;
+show();
+}
+
+}
+
+function prevStep(){
+
+if(step>-1){
+step--;
+show();
+}
+
+}
+
+show();
+
+</script>
+
+</body>
+</html>
